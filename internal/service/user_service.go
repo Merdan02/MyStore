@@ -9,11 +9,12 @@ import (
 
 type UserService interface {
 	CreateUser(user *models.User) error
-	GetUserById(id int64) (*models.User, error)
+	GetAllUsers() ([]*models.User, error)
+	GetUserById(id int) (*models.User, error)
 	GetUserByUsername(username string) (*models.User, error)
 	GetUserByEmail(email string) (*models.User, error)
 	UpdateUser(user *models.User) error
-	DeleteUserById(id int64) error
+	DeleteUserById(id int) error
 }
 
 type userService struct {
@@ -39,15 +40,24 @@ func (s *userService) CreateUser(user *models.User) error {
 		return errors.New("user with this email already exists")
 	}
 
-	res := s.repo.CreateUser(user)
-	if res != nil {
+	if err := s.repo.CreateUser(user); err != nil {
 		s.Log.Error("user creation failed", zap.Error(err))
 		return err
 	}
+
 	return nil
 }
 
-func (s *userService) GetUserById(id int64) (*models.User, error) {
+func (s *userService) GetAllUsers() ([]*models.User, error) {
+	users, err := s.repo.GetAllUsers()
+	if err != nil {
+		s.Log.Error("users retrieval failed", zap.Error(err))
+		return nil, err
+	}
+	return users, nil
+}
+
+func (s *userService) GetUserById(id int) (*models.User, error) {
 
 	if id == 0 {
 		s.Log.Error("user id is empty")
@@ -89,10 +99,17 @@ func (s *userService) GetUserByEmail(email string) (*models.User, error) {
 }
 
 func (s *userService) UpdateUser(user *models.User) error {
+
 	if user.Name == "" || user.Password == "" || user.Email == "" || user.Role == "" {
 		s.Log.Error("user data is empty")
 		return errors.New("data is empty")
 	}
+
+	if user.ID == 0 {
+		s.Log.Error("user id is empty")
+		return errors.New("user id is empty")
+	}
+
 	err := s.repo.UpdateUser(user)
 	if err != nil {
 		s.Log.Error("user update failed", zap.Error(err))
@@ -101,7 +118,7 @@ func (s *userService) UpdateUser(user *models.User) error {
 	return nil
 }
 
-func (s *userService) DeleteUserById(id int64) error {
+func (s *userService) DeleteUserById(id int) error {
 	if id == 0 {
 		s.Log.Error("user id is empty")
 		return errors.New("user id is empty")
