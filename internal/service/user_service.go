@@ -1,0 +1,115 @@
+package service
+
+import (
+	"errors"
+	"go.uber.org/zap"
+	"mystore/internal/models"
+	"mystore/internal/repository"
+)
+
+type UserService interface {
+	CreateUser(user *models.User) error
+	GetUserById(id int64) (*models.User, error)
+	GetUserByUsername(username string) (*models.User, error)
+	GetUserByEmail(email string) (*models.User, error)
+	UpdateUser(user *models.User) error
+	DeleteUserById(id int64) error
+}
+
+type userService struct {
+	repo repository.UserRepository
+	Log  *zap.Logger
+}
+
+func NewUserService(repo repository.UserRepository, logger *zap.Logger) UserService {
+	return &userService{
+		repo: repo,
+		Log:  logger,
+	}
+}
+func (s *userService) CreateUser(user *models.User) error {
+	if user.Name == "" || user.Password == "" || user.Email == "" || user.Role == "" {
+		s.Log.Error("user data is empty")
+		return errors.New("data is empty")
+	}
+
+	existingUser, err := s.repo.GetUserByEmail(user.Email)
+	if err == nil && existingUser != nil {
+		s.Log.Error("user already exists", zap.String("email", user.Email))
+		return errors.New("user with this email already exists")
+	}
+
+	res := s.repo.CreateUser(user)
+	if res != nil {
+		s.Log.Error("user creation failed", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (s *userService) GetUserById(id int64) (*models.User, error) {
+
+	if id == 0 {
+		s.Log.Error("user id is empty")
+		return nil, errors.New("user id is empty")
+	}
+
+	user, err := s.repo.GetUserById(id)
+	if err != nil {
+		s.Log.Error("user not found with this id", zap.Error(err))
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *userService) GetUserByUsername(username string) (*models.User, error) {
+	if username == "" {
+		s.Log.Error("username is empty")
+		return nil, errors.New("username is empty")
+	}
+	user, err := s.repo.GetUserByUsername(username)
+	if err != nil {
+		s.Log.Error("user not found with this username", zap.Error(err))
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *userService) GetUserByEmail(email string) (*models.User, error) {
+	if email == "" {
+		s.Log.Error("email is empty")
+		return nil, errors.New("email is empty")
+	}
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		s.Log.Error("user not found with this email", zap.Error(err))
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *userService) UpdateUser(user *models.User) error {
+	if user.Name == "" || user.Password == "" || user.Email == "" || user.Role == "" {
+		s.Log.Error("user data is empty")
+		return errors.New("data is empty")
+	}
+	err := s.repo.UpdateUser(user)
+	if err != nil {
+		s.Log.Error("user update failed", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (s *userService) DeleteUserById(id int64) error {
+	if id == 0 {
+		s.Log.Error("user id is empty")
+		return errors.New("user id is empty")
+	}
+	err := s.repo.DeleteUserById(id)
+	if err != nil {
+		s.Log.Error("user delete failed", zap.Error(err))
+		return err
+	}
+	return nil
+}
