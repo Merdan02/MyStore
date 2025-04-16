@@ -1,10 +1,9 @@
 package main
 
-import "mystore/internal/config"
+import (
+	"mystore/internal/app"
+)
 
 func main() {
-	_, err := config.ConnectDB()
-	if err != nil {
-		return
-	}
+	app.Run()
 }

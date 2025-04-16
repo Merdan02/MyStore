@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"go.uber.org/zap"
 	"mystore/internal/models"
 )
@@ -32,7 +33,7 @@ func (r *userRepository) CreateUser(user *models.User) error {
 	err := r.db.QueryRow("INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, created_at", user.Name, user.Email, user.Password, user.Role).Scan(&user.ID, &user.CreatedAt)
 	if err != nil {
 		r.Log.Error("Failed to insert user", zap.Error(err))
-		return errors.New("failed to insert user")
+		return fmt.Errorf("failed to insert user: %w", err)
 	}
 	return nil
 }
