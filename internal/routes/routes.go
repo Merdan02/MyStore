@@ -5,7 +5,7 @@ import (
 	"mystore/internal/handlers"
 )
 
-func SetupRoutes(userHandler *handlers.UserHandler) *gin.Engine {
+func SetupRoutes(userHandler *handlers.UserHandler, handler *handlers.ProductHandler) *gin.Engine {
 	router := gin.Default()
 
 	userGroup := router.Group("/user")
@@ -16,6 +16,13 @@ func SetupRoutes(userHandler *handlers.UserHandler) *gin.Engine {
 	userGroup.PUT("/:id", userHandler.UpdateUser)
 	userGroup.POST("/", userHandler.CreateUser)
 	userGroup.DELETE("/:id", userHandler.DeleteUser)
+
+	productGroup := router.Group("/products")
+	productGroup.POST("/", handler.CreateProduct)
+	productGroup.GET("/", handler.GetAllProduct)
+	productGroup.GET("/:id", handler.GetById)
+	productGroup.PUT("/:id", handler.UpdateProduct)
+	productGroup.DELETE("/:id", handler.DeleteProduct)
 
 	return router
 }

@@ -11,11 +11,15 @@ import (
 	"mystore/internal/service"
 )
 
-func InitApp(db *sql.DB, logger *zap.Logger) *handlers.UserHandler {
+func InitApp(db *sql.DB, logger *zap.Logger) (*handlers.UserHandler, *handlers.ProductHandler) {
+	productRepo := repository.NewProductRepo(db, logger)
+	productService := service.NewProductService(productRepo, logger)
+	productHandler := handlers.NewProductHandler(productService)
+
 	userRepo := repository.NewUserRepository(db, logger)
 	userService := service.NewUserService(userRepo, logger)
 	userHandler := handlers.NewUserHandler(userService)
-	return userHandler
+	return userHandler, productHandler
 }
 
 func Run() {
@@ -24,13 +28,11 @@ func Run() {
 		log.Fatalf("failed to connect to database: %v", err)
 
 	}
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-			log.Fatalf("failed to close  database: %v", err)
-
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Fatalf("DB close error: %v", err)
 		}
-	}(db)
+	}()
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -39,13 +41,13 @@ func Run() {
 	defer func(logger *zap.Logger) {
 		err := logger.Sync()
 		if err != nil {
-			log.Fatal("failed to sync logger")
+			log.Fatalf("failed to connect database: %v", err)
 		}
 	}(logger)
 
-	userHandler := InitApp(db, logger)
+	userHandler, productHandler := InitApp(db, logger)
 
-	r := routes.SetupRoutes(userHandler)
+	r := routes.SetupRoutes(userHandler, productHandler)
 
 	if err := r.Run(); err != nil {
 		log.Fatal("failed to run server")
