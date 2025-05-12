@@ -3,8 +3,10 @@ package service
 import (
 	"errors"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"mystore/internal/models"
 	"mystore/internal/repository"
+	"strings"
 )
 
 type UserService interface {
@@ -15,6 +17,7 @@ type UserService interface {
 	GetUserByEmail(email string) (*models.User, error)
 	UpdateUser(user *models.User) error
 	DeleteUserById(id int) error
+	//Login(name, password, email string) (*models.User, error)
 }
 
 type userService struct {
@@ -39,6 +42,14 @@ func (s *userService) CreateUser(user *models.User) error {
 		s.Log.Error("user already exists", zap.String("email", user.Email))
 		return errors.New("user with this email already exists")
 	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		s.Log.Error("failed to hash password", zap.Error(err))
+		return errors.New("failed to hash password")
+	}
+
+	user.Password = string(hashedPassword)
 
 	if err := s.repo.CreateUser(user); err != nil {
 		s.Log.Error("user creation failed", zap.Error(err))
@@ -110,8 +121,25 @@ func (s *userService) UpdateUser(user *models.User) error {
 		return errors.New("user id is empty")
 	}
 
-	err := s.repo.UpdateUser(user)
+	if !strings.HasPrefix(user.Password, "$2a$") {
+		// только если это НЕ хеш
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			s.Log.Error("failed to hash password", zap.Error(err))
+			return errors.New("failed to hash password")
+		}
+		user.Password = string(hashedPassword)
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
+		s.Log.Error("failed to hash password", zap.Error(err))
+		return errors.New("failed to hash password")
+	}
+	user.Password = string(hashedPassword)
+
+	res := s.repo.UpdateUser(user)
+	if res != nil {
 		s.Log.Error("user update failed", zap.Error(err))
 		return err
 	}
@@ -130,3 +158,17 @@ func (s *userService) DeleteUserById(id int) error {
 	}
 	return nil
 }
+
+//func (s *userService) Login(name, password, email string) (*models.User, error) {
+//	user, err := s.repo.GetUserByEmail(email)
+//	if err != nil {
+//		s.Log.Error("user not found with this email", zap.Error(err))
+//		return nil, err
+//	}
+//
+//	if !CheckPassword(password, user.Password) {
+//		s.Log.Error("invalid user password", zap.Error(err))
+//		return nil, errors.New("invalid user password")
+//	}
+//	return user, nil
+//}
