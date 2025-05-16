@@ -14,6 +14,7 @@ func SetupRoutes(userHandler *handlers.UserHandler, handler *handlers.ProductHan
 	userGroup.GET("/email/:email", userHandler.GetUserByEmail)
 	userGroup.GET("/username/:username", userHandler.GetUserByUsername)
 	userGroup.PUT("/:id", userHandler.UpdateUser)
+	userGroup.POST("/login", userHandler.Login)
 	userGroup.POST("/", userHandler.CreateUser)
 	userGroup.DELETE("/:id", userHandler.DeleteUser)
 

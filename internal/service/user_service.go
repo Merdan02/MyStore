@@ -6,6 +6,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"mystore/internal/models"
 	"mystore/internal/repository"
+	"mystore/internal/utils"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ type UserService interface {
 	GetUserByEmail(email string) (*models.User, error)
 	UpdateUser(user *models.User) error
 	DeleteUserById(id int) error
-	//Login(name, password, email string) (*models.User, error)
+	Login(email, password string) (string, error)
 }
 
 type userService struct {
@@ -159,16 +160,21 @@ func (s *userService) DeleteUserById(id int) error {
 	return nil
 }
 
-//func (s *userService) Login(name, password, email string) (*models.User, error) {
-//	user, err := s.repo.GetUserByEmail(email)
-//	if err != nil {
-//		s.Log.Error("user not found with this email", zap.Error(err))
-//		return nil, err
-//	}
-//
-//	if !CheckPassword(password, user.Password) {
-//		s.Log.Error("invalid user password", zap.Error(err))
-//		return nil, errors.New("invalid user password")
-//	}
-//	return user, nil
-//}
+func (s *userService) Login(email, password string) (string, error) {
+	u, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		s.Log.Error("user not found with this email", zap.Error(err))
+		return "", errors.New("user not found with this email")
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	if err != nil {
+		s.Log.Error("user not found with this password", zap.Error(err))
+		return "", errors.New("user not found with this password")
+	}
+	token, err := utils.GenerateJWT(u.ID, u.Role)
+	if err != nil {
+		s.Log.Error("failed to generate token", zap.Error(err))
+		return "", errors.New("could not generate token")
+	}
+	return token, nil
+}
