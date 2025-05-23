@@ -130,3 +130,14 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
+
+func (h *UserHandler) GetMe(c *gin.Context) {
+	userId := c.GetInt("user_id")
+	user, err := h.UserService.GetUserById(userId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": user})
+}

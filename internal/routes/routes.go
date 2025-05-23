@@ -3,10 +3,13 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"mystore/internal/handlers"
+	"mystore/internal/middleware"
+	"os"
 )
 
 func SetupRoutes(userHandler *handlers.UserHandler, handler *handlers.ProductHandler) *gin.Engine {
 	router := gin.Default()
+	jwtKey := []byte(os.Getenv("JWT_KEY"))
 
 	userGroup := router.Group("/user")
 	userGroup.GET("/", userHandler.GetAllUser)
@@ -18,12 +21,20 @@ func SetupRoutes(userHandler *handlers.UserHandler, handler *handlers.ProductHan
 	userGroup.POST("/", userHandler.CreateUser)
 	userGroup.DELETE("/:id", userHandler.DeleteUser)
 
-	productGroup := router.Group("/products")
-	productGroup.POST("/", handler.CreateProduct)
-	productGroup.GET("/", handler.GetAllProduct)
-	productGroup.GET("/:id", handler.GetById)
-	productGroup.PUT("/:id", handler.UpdateProduct)
-	productGroup.DELETE("/:id", handler.DeleteProduct)
+	protectedUser := router.Group("/protect/user")
+	protectedUser.Use(middleware.AuthMiddleware(jwtKey))
+	protectedUser.GET("/me", userHandler.GetMe)
 
+	productGroup := router.Group("/products")
+	productGroup.GET("/:id", handler.GetById)
+	productGroup.GET("/", handler.GetAllProduct)
+
+	adminGroup := router.Group("/admin/products")
+	adminGroup.Use(middleware.AuthMiddleware(jwtKey), middleware.AdminOnly())
+	{
+		adminGroup.POST("/", handler.CreateProduct)
+		adminGroup.PUT("/:id", handler.UpdateProduct)
+		adminGroup.DELETE("/:id", handler.DeleteProduct)
+	}
 	return router
 }
