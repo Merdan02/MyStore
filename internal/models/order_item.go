@@ -1,9 +1,9 @@
 package models
 
 type OrderItem struct {
-	ID        int
-	OrderID   int
-	ProductID int
-	Quantity  int
-	Price     float64
+	ID        int     `json:"id"`
+	OrderID   int     `json:"order_id"`
+	ProductID int     `json:"product_id"`
+	Quantity  int     `json:"quantity"`
+	Price     float64 `json:"price"`
 }

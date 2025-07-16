@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func SetupRoutes(userHandler *handlers.UserHandler, handler *handlers.ProductHandler) *gin.Engine {
+func SetupRoutes(userHandler *handlers.UserHandler, productHandler *handlers.ProductHandler) *gin.Engine {
 	router := gin.Default()
 	jwtKey := []byte(os.Getenv("JWT_KEY"))
 
@@ -26,15 +26,15 @@ func SetupRoutes(userHandler *handlers.UserHandler, handler *handlers.ProductHan
 	protectedUser.GET("/me", userHandler.GetMe)
 
 	productGroup := router.Group("/products")
-	productGroup.GET("/:id", handler.GetById)
-	productGroup.GET("/", handler.GetAllProduct)
+	productGroup.GET("/:id", productHandler.GetById)
+	productGroup.GET("/", productHandler.GetAllProduct)
 
 	adminGroup := router.Group("/admin/products")
 	adminGroup.Use(middleware.AuthMiddleware(jwtKey), middleware.AdminOnly())
 	{
-		adminGroup.POST("/", handler.CreateProduct)
-		adminGroup.PUT("/:id", handler.UpdateProduct)
-		adminGroup.DELETE("/:id", handler.DeleteProduct)
+		adminGroup.POST("/", productHandler.CreateProduct)
+		adminGroup.PUT("/:id", productHandler.UpdateProduct)
+		adminGroup.DELETE("/:id", productHandler.DeleteProduct)
 	}
 	return router
 }
